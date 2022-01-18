@@ -6,24 +6,32 @@ import torch
 import tqdm
 import math
 import numpy as np
+
 # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def get_image_batch(fts, batch_ids):
-    image = fts['image'][batch_ids]
+    image = fts["image"][batch_ids]
     return image
 
 
 def get_attribute_batch(fts, batch_ids):
-    attribute = fts['attribute'][batch_ids]
+    attribute = fts["attribute"][batch_ids]
     return attribute
 
 
-def extract_features(data_loader, attr_file, attr2idx_file, device, image_model,
-                     attribute_topk=8, batch_size=128):
-    model = EfficientNet.from_pretrained('efficientnet-b7')
-    ckpt = torch.load(image_model, map_location='cpu')
-    print('[INFO] Loading weights from {}'.format(image_model))
+def extract_features(
+    data_loader,
+    attr_file,
+    attr2idx_file,
+    device,
+    image_model,
+    attribute_topk=8,
+    batch_size=128,
+):
+    model = EfficientNet.from_pretrained("efficientnet-b7")
+    ckpt = torch.load(image_model, map_location="cpu")
+    print("[INFO] Loading weights from {}".format(image_model))
     if "model_state" in ckpt:
         model.load_state_dict(ckpt["model_state"])
     else:
@@ -31,10 +39,10 @@ def extract_features(data_loader, attr_file, attr2idx_file, device, image_model,
     model = model.to(device)
     model = model.eval()
 
-    with open(attr_file, 'r') as f:
+    with open(attr_file, "r") as f:
         predicted_attr = json.load(f)
 
-    with open(attr2idx_file, 'r') as f:
+    with open(attr2idx_file, "r") as f:
         attr2idx = json.load(f)
 
     num_data = len(data_loader)
@@ -52,16 +60,16 @@ def extract_features(data_loader, attr_file, attr2idx_file, device, image_model,
         return image_ft_batch
 
     def compute_attribute_idx(asin_batch):
-        labels = [predicted_attr[asin[0]]['predict'][:attribute_topk]
-                            for asin in asin_batch]
-        attribute_idx = [[attr2idx[attr] for attr in label]
-                         for label in labels]
+        labels = [
+            predicted_attr[asin[0]]["predict"][:attribute_topk] for asin in asin_batch
+        ]
+        attribute_idx = [[attr2idx[attr] for attr in label] for label in labels]
         return attribute_idx
 
     def append_batch(first, last):
         batch_ids = torch.tensor(
-            [j for j in range(first, last)],
-            dtype=torch.long, device=device)
+            [j for j in range(first, last)], dtype=torch.long, device=device
+        )
         [data, meta_info] = data_loader.get_items(batch_ids)
         data = data.to(device)
         image_ft_batch = compute_features(data)
@@ -77,25 +85,11 @@ def extract_features(data_loader, attr_file, attr2idx_file, device, image_model,
     if num_batch * batch_size < num_data:
         append_batch(num_batch * batch_size, num_data)
 
-    image_ft = torch.cat(image_ft, dim=0).to('cpu')
+    image_ft = torch.cat(image_ft, dim=0).to("cpu")
     attributes = torch.from_numpy(np.asarray(attributes, dtype=int))
-    features = {'asins': asins, 'image': image_ft, 'attribute': attributes}
+    features = {"asins": asins, "image": image_ft, "attribute": attributes}
 
     return features
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #

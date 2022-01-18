@@ -9,7 +9,7 @@ Constants_PAD = 0
 
 
 def nopeak_mask(size):
-    np_mask = np.triu(np.ones((1, size, size)), k=1).astype('uint8')
+    np_mask = np.triu(np.ones((1, size, size)), k=1).astype("uint8")
     np_mask = Variable(torch.from_numpy(np_mask) == 0)
 
     return np_mask
@@ -31,9 +31,8 @@ def create_masks(trg):
     return trg_mask
 
 
-def init_vars(image0, image1, model, opt, vocab, image0_attribute,
-              image1_attribute):
-    init_tok = vocab.word2idx['<start>']
+def init_vars(image0, image1, model, opt, vocab, image0_attribute, image1_attribute):
+    init_tok = vocab.word2idx["<start>"]
     image0 = model.cnn1(image0)
     image1 = model.cnn2(image1)
 
@@ -50,20 +49,19 @@ def init_vars(image0, image1, model, opt, vocab, image0_attribute,
     outputs = torch.LongTensor([[init_tok]]).to(opt.device)
 
     trg_mask = nopeak_mask(1).to(opt.device)
-    out = model.out(model.decoder(
-        outputs, e_output, trg_mask))
+    out = model.out(model.decoder(outputs, e_output, trg_mask))
 
     out = F.softmax(out, dim=-1)
     probs, ix = out[:, -1].data.topk(opt.beam_size)
-    log_scores = torch.Tensor(
-        [math.log(prob) for prob in probs.data[0]]).unsqueeze(0)
+    log_scores = torch.Tensor([math.log(prob) for prob in probs.data[0]]).unsqueeze(0)
 
     outputs = torch.zeros(opt.beam_size, opt.max_seq_len).long().to(opt.device)
     outputs[:, 0] = init_tok
     outputs[:, 1] = ix[0]
 
-    e_outputs = torch.zeros(
-        opt.beam_size, e_output.size(-2), e_output.size(-1)).to(opt.device)
+    e_outputs = torch.zeros(opt.beam_size, e_output.size(-2), e_output.size(-1)).to(
+        opt.device
+    )
     e_outputs[:, :] = e_output[0]
 
     return outputs, e_outputs, log_scores
@@ -72,9 +70,9 @@ def init_vars(image0, image1, model, opt, vocab, image0_attribute,
 def k_best_outputs(outputs, out, log_scores, i, k):
     probs, ix = out[:, -1].data.topk(k)
 
-    log_probs = (torch.Tensor(
-        [math.log(p) for p in probs.data.view(-1)]).view(k,-1) +
-                 log_scores.transpose(0, 1))
+    log_probs = torch.Tensor([math.log(p) for p in probs.data.view(-1)]).view(
+        k, -1
+    ) + log_scores.transpose(0, 1)
 
     k_probs, k_ix = log_probs.view(-1).topk(k)
     row = k_ix // k
@@ -87,16 +85,16 @@ def k_best_outputs(outputs, out, log_scores, i, k):
 
 def beam_search(image0, image1, model, opt, vocab, image0_label, image1_label):
     outputs, e_outputs, log_scores = init_vars(
-        image0, image1, model, opt, vocab, image0_label, image1_label)
-    eos_tok = vocab.word2idx['<end>']
+        image0, image1, model, opt, vocab, image0_label, image1_label
+    )
+    eos_tok = vocab.word2idx["<end>"]
     ind = None
 
     for i in range(2, opt.max_seq_len):
         trg_mask = nopeak_mask(i).to(opt.device)
         out = model.out(model.decoder(outputs[:, :i], e_outputs, trg_mask))
         out = F.softmax(out, dim=-1)
-        outputs, log_scores = k_best_outputs(
-            outputs, out, log_scores, i, opt.beam_size)
+        outputs, log_scores = k_best_outputs(outputs, out, log_scores, i, opt.beam_size)
         # Occurrences of end symbols for all input sentences.
         ones = (outputs == eos_tok).nonzero()
 
@@ -117,22 +115,20 @@ def beam_search(image0, image1, model, opt, vocab, image0_label, image1_label):
             break
 
     if ind is None:
-        out_str = ' '.join([vocab.idx2word[str(tok.item())]
-                            for tok in outputs[0][1:]])
+        out_str = " ".join([vocab.idx2word[str(tok.item())] for tok in outputs[0][1:]])
         out_idx = [tok.item() for tok in outputs[0][1:]]
         return out_idx, out_str
     else:
         length = (outputs[ind] == eos_tok).nonzero()[0]
 
-        out_str = ' '.join([vocab.idx2word[str(tok.item())]
-                            for tok in outputs[ind][1:length]])
-        out_idx = [tok.item()
-                   for tok in outputs[ind][1:length]]
+        out_str = " ".join(
+            [vocab.idx2word[str(tok.item())] for tok in outputs[ind][1:length]]
+        )
+        out_idx = [tok.item() for tok in outputs[ind][1:length]]
         return out_idx, out_str
 
 
-def greedy_search(image0, image1, model, opt, vocab,
-                  image0_label, image1_label):
+def greedy_search(image0, image1, model, opt, vocab, image0_label, image1_label):
     image0 = model.cnn1(image0)
     image1 = model.cnn2(image1)
 
@@ -147,11 +143,11 @@ def greedy_search(image0, image1, model, opt, vocab,
 
     e_outputs = model.encoder(joint_encoding)
 
-    outputs = torch.from_numpy(
-        np.zeros((image1.size(0), opt.max_seq_len))).to(
-        dtype=torch.long, device=opt.device)
+    outputs = torch.from_numpy(np.zeros((image1.size(0), opt.max_seq_len))).to(
+        dtype=torch.long, device=opt.device
+    )
 
-    init_tok = vocab.word2idx['<start>']
+    init_tok = vocab.word2idx["<start>"]
 
     outputs[:, 0] = init_tok
     for i in range(1, opt.max_seq_len):
@@ -160,13 +156,15 @@ def greedy_search(image0, image1, model, opt, vocab,
         probs, ix = out.max(dim=2)
         outputs[:, i] = ix[:, -1]
 
-    end_tok = vocab.word2idx['<end>']
+    end_tok = vocab.word2idx["<end>"]
     mask = (outputs == end_tok).to(dtype=torch.float).cumsum(dim=1)
     # print('mask', mask)
-    outputs = (outputs * ((mask == 0).to(dtype=torch.int)) +
-               end_tok * ((mask > 0).to(dtype=torch.int)))
-    out_str = [' '.join([vocab.idx2word[str(tok.item())]
-                         for tok in outputs[j][0:]])
-               for j in range(outputs.size(0))]
+    outputs = outputs * ((mask == 0).to(dtype=torch.int)) + end_tok * (
+        (mask > 0).to(dtype=torch.int)
+    )
+    out_str = [
+        " ".join([vocab.idx2word[str(tok.item())] for tok in outputs[j][0:]])
+        for j in range(outputs.size(0))
+    ]
 
     return outputs, out_str

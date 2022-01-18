@@ -31,3 +31,10 @@ If you find Fashion IQ useful, please cite the following paper:
 
 ## License
 [Community Data License Agreement](https://cdla.io/) (CDLA) License
+
+
+## 
+
+```python
+python train.py -data_train ../../captions/cap.preprocess.dress.train.json -data_dev ../../captions/cap.preprocess.dress.val.json -vocab ../../vocab.json -data_dev_combined 'foo'
+```

@@ -27,12 +27,10 @@ class PositionalEncoder(nn.Module):
         pe = torch.zeros(max_seq_len, d_model)
         for pos in range(max_seq_len):
             for i in range(0, d_model, 2):
-                pe[pos, i] = \
-                    math.sin(pos / (10000 ** ((2 * i) / d_model)))
-                pe[pos, i + 1] = \
-                    math.cos(pos / (10000 ** ((2 * (i + 1)) / d_model)))
+                pe[pos, i] = math.sin(pos / (10000 ** ((2 * i) / d_model)))
+                pe[pos, i + 1] = math.cos(pos / (10000 ** ((2 * (i + 1)) / d_model)))
         pe = pe.unsqueeze(0)
-        self.register_buffer('pe', pe)
+        self.register_buffer("pe", pe)
 
     def forward(self, x):
         # make embeddings relatively larger
@@ -59,8 +57,12 @@ class Norm(nn.Module):
         self.eps = eps
 
     def forward(self, x):
-        norm = self.alpha * (x - x.mean(dim=-1, keepdim=True)) \
-               / (x.std(dim=-1, keepdim=True) + self.eps) + self.bias
+        norm = (
+            self.alpha
+            * (x - x.mean(dim=-1, keepdim=True))
+            / (x.std(dim=-1, keepdim=True) + self.eps)
+            + self.bias
+        )
         return norm
 
 
@@ -111,8 +113,7 @@ class MultiHeadAttention(nn.Module):
         # calculate attention using function we will define next
         scores = attention(q, k, v, self.d_k, mask, self.dropout)
         # concatenate heads and put through final linear layer
-        concat = scores.transpose(1, 2).contiguous() \
-            .view(bs, -1, self.d_model)
+        concat = scores.transpose(1, 2).contiguous().view(bs, -1, self.d_model)
         output = self.out(concat)
 
         return output
@@ -172,8 +173,7 @@ class DecoderLayer(nn.Module):
         x2 = self.norm_1(x)
         x = x + self.dropout_1(self.attn_1(x2, x2, x2, trg_mask))
         x2 = self.norm_2(x)
-        x = x + self.dropout_2(
-            self.attn_2(x2, e_outputs, e_outputs, src_mask))
+        x = x + self.dropout_2(self.attn_2(x2, e_outputs, e_outputs, src_mask))
         x2 = self.norm_3(x)
         x = x + self.dropout_3(self.ff(x2))
         return x
@@ -188,8 +188,7 @@ class Encoder(nn.Module):
         super().__init__()
         self.N_layers = N_layers
         self.pe = PositionalEncoder(d_model, dropout=dropout)
-        self.layers = get_clones(
-            EncoderLayer(d_model, heads, dropout), N_layers)
+        self.layers = get_clones(EncoderLayer(d_model, heads, dropout), N_layers)
         self.norm = Norm(d_model)
 
     def forward(self, x):
@@ -205,8 +204,7 @@ class Decoder(nn.Module):
         self.N_layers = N_layers
         self.embed = Embedder(vocab_size, d_model)
         self.pe = PositionalEncoder(d_model, dropout=dropout)
-        self.layers = get_clones(
-            DecoderLayer(d_model, heads, dropout), N_layers)
+        self.layers = get_clones(DecoderLayer(d_model, heads, dropout), N_layers)
         self.norm = Norm(d_model)
 
     def forward(self, trg, e_outputs, trg_mask):
@@ -225,7 +223,7 @@ class CNN_Embedding(nn.Module):
         self.d_model = d_model
         self.model_name = model_name
         print("cnn model name: ", model_name)
-        if model_name[:6] == 'resnet':
+        if model_name[:6] == "resnet":
             if model_name == "resnet101":
                 in_features = 2048
             elif model_name == "resnet18":
@@ -241,23 +239,22 @@ class CNN_Embedding(nn.Module):
 
     def forward(self, img_ft):
         # (batch_size, d, d, f) -> (batch_size, d^2, f)
-        img_ft = self.linear(
-            self.bn(img_ft.squeeze(1))).unsqueeze(1)
+        img_ft = self.linear(self.bn(img_ft.squeeze(1))).unsqueeze(1)
         return img_ft
 
 
 class Joint_Encoding:
     def __init__(self, joint_encoding_function):
-        if joint_encoding_function == 'addition':
-            self.joint_encoding_function = lambda x1, x2 : x1 + x2
-        elif joint_encoding_function == 'deduction':
-            self.joint_encoding_function = lambda x1, x2 : x1 - x2
-        elif joint_encoding_function == 'max':
-            self.joint_encoding_function = lambda x1, x2 : torch.max(x1,x2)
-        elif joint_encoding_function == 'element_multiplication':
-            self.joint_encoding_function = lambda x1, x2 : x1 * x2
+        if joint_encoding_function == "addition":
+            self.joint_encoding_function = lambda x1, x2: x1 + x2
+        elif joint_encoding_function == "deduction":
+            self.joint_encoding_function = lambda x1, x2: x1 - x2
+        elif joint_encoding_function == "max":
+            self.joint_encoding_function = lambda x1, x2: torch.max(x1, x2)
+        elif joint_encoding_function == "element_multiplication":
+            self.joint_encoding_function = lambda x1, x2: x1 * x2
 
-    def __call__(self,E1, E2):
+    def __call__(self, E1, E2):
         return self.joint_encoding_function(E1, E2)
 
 
@@ -273,9 +270,19 @@ class Attribute_Embedding(nn.Module):
 
 
 class Transformer(nn.Module):
-    def __init__(self, trg_vocab, d_model, N, heads, dropout, cnn_model_name,
-                 joint_encoding_function, attribute_vocab_size=1000,
-                 cnn_pretrained_model=None, add_attribute=False):
+    def __init__(
+        self,
+        trg_vocab,
+        d_model,
+        N,
+        heads,
+        dropout,
+        cnn_model_name,
+        joint_encoding_function,
+        attribute_vocab_size=1000,
+        cnn_pretrained_model=None,
+        add_attribute=False,
+    ):
         super().__init__()
         self.add_attribute = add_attribute
         self.cnn1 = CNN_Embedding(d_model, cnn_model_name, cnn_pretrained_model)
@@ -283,16 +290,19 @@ class Transformer(nn.Module):
 
         if self.add_attribute:
             self.attribute_embedding1 = Attribute_Embedding(
-                d_model, attribute_vocab_size)
+                d_model, attribute_vocab_size
+            )
             self.attribute_embedding2 = Attribute_Embedding(
-                d_model, attribute_vocab_size)
+                d_model, attribute_vocab_size
+            )
         self.joint_encoding = Joint_Encoding(joint_encoding_function)
         self.encoder = Encoder(d_model, N, heads, dropout)
         self.decoder = Decoder(trg_vocab, d_model, N, heads, dropout)
         self.out = nn.Linear(d_model, trg_vocab)
 
-    def forward(self, image0, image1, trg, trg_mask,
-                image0_attribute, image1_attribute):
+    def forward(
+        self, image0, image1, trg, trg_mask, image0_attribute, image1_attribute
+    ):
 
         image0 = self.cnn1(image0)
         image1 = self.cnn2(image1)
@@ -314,29 +324,42 @@ class Transformer(nn.Module):
 
 
 def load_trained_model(model_name):
-    checkpoint = torch.load(model_name, map_location='cpu')
-    model_opt = checkpoint['settings']
+    checkpoint = torch.load(model_name, map_location="cpu")
+    model_opt = checkpoint["settings"]
 
-    model = Transformer(model_opt.vocab_size, model_opt.d_model,
-                        model_opt.n_layers, model_opt.n_heads,
-                        model_opt.dropout, model_opt.cnn_name,
-                        model_opt.joint_enc_func,
-                        model_opt.attribute_vocab_size,
-                        model_opt.cnn_pretrained_model,
-                        model_opt.add_attribute)
+    model = Transformer(
+        model_opt.vocab_size,
+        model_opt.d_model,
+        model_opt.n_layers,
+        model_opt.n_heads,
+        model_opt.dropout,
+        model_opt.cnn_name,
+        model_opt.joint_enc_func,
+        model_opt.attribute_vocab_size,
+        model_opt.cnn_pretrained_model,
+        model_opt.add_attribute,
+    )
 
-    model.load_state_dict(checkpoint['model'])
-    print('[Info] Trained model state loaded from: ', model_name)
+    model.load_state_dict(checkpoint["model"])
+    print("[Info] Trained model state loaded from: ", model_name)
     return model
 
 
 def create_model(opt):
     assert opt.d_model % opt.n_heads == 0
     assert opt.dropout < 1
-    model = Transformer(opt.vocab_size, opt.d_model, opt.n_layers,
-                        opt.n_heads, opt.dropout, opt.cnn_name,
-                        opt.joint_enc_func, opt.attribute_vocab_size,
-                        opt.cnn_pretrained_model, opt.add_attribute)
+    model = Transformer(
+        opt.vocab_size,
+        opt.d_model,
+        opt.n_layers,
+        opt.n_heads,
+        opt.dropout,
+        opt.cnn_name,
+        opt.joint_enc_func,
+        opt.attribute_vocab_size,
+        opt.cnn_pretrained_model,
+        opt.add_attribute,
+    )
 
     for p in model.parameters():
         if p.dim() > 1:

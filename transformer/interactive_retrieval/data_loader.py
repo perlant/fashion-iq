@@ -5,10 +5,10 @@ from joblib import Parallel, delayed
 import json
 
 
-class Dataset():
+class Dataset:
     def __init__(self, root, data_file_name, transform=None, num_workers=4):
         """Set the path for images, captions and vocabulary wrapper.
-        
+
         Args:
             root: image directory.
             data: index file name
@@ -17,7 +17,7 @@ class Dataset():
         """
         self.num_workers = num_workers
         self.root = root
-        with open(data_file_name, 'r') as f:
+        with open(data_file_name, "r") as f:
             data = json.load(f)
         self.data = data
         self.ids = range(len(self.data))
@@ -28,9 +28,9 @@ class Dataset():
         data = self.data
         id = self.ids[index]
 
-        img_name = data[id] + '.jpg'
+        img_name = data[id] + ".jpg"
 
-        image = Image.open(os.path.join(self.root, img_name)).convert('RGB')
+        image = Image.open(os.path.join(self.root, img_name)).convert("RGB")
         if self.transform is not None:
             image = self.transform(image)
 
@@ -38,8 +38,8 @@ class Dataset():
 
     def get_items(self, indexes):
         items = Parallel(n_jobs=self.num_workers)(
-            delayed(self.get_item)(
-                i) for i in indexes)
+            delayed(self.get_item)(i) for i in indexes
+        )
 
         return collate_fn(items)
 
@@ -54,4 +54,3 @@ def collate_fn(data):
     images = torch.stack(images, dim=0)
 
     return images, meta_info
-

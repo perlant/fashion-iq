@@ -21,12 +21,10 @@ class PositionalEncoder(nn.Module):
         pe = torch.zeros(max_seq_len, d_model)
         for pos in range(max_seq_len):
             for i in range(0, d_model, 2):
-                pe[pos, i] = \
-                    math.sin(pos / (10000 ** ((2 * i) / d_model)))
-                pe[pos, i + 1] = \
-                    math.cos(pos / (10000 ** ((2 * (i + 1)) / d_model)))
+                pe[pos, i] = math.sin(pos / (10000 ** ((2 * i) / d_model)))
+                pe[pos, i + 1] = math.cos(pos / (10000 ** ((2 * (i + 1)) / d_model)))
         pe = pe.unsqueeze(0)
-        self.register_buffer('pe', pe)
+        self.register_buffer("pe", pe)
 
     def forward(self, x):
         # make embeddings relatively larger
@@ -57,11 +55,16 @@ class Norm(nn.Module):
 
     def forward(self, x):
         if self.calibrate:
-            norm = self.alpha * (x - x.mean(dim=-1, keepdim=True)) \
-               / (x.std(dim=-1, keepdim=True) + self.eps) + self.bias
+            norm = (
+                self.alpha
+                * (x - x.mean(dim=-1, keepdim=True))
+                / (x.std(dim=-1, keepdim=True) + self.eps)
+                + self.bias
+            )
         else:
-            norm = (x - x.mean(dim=-1, keepdim=True)) \
-                   / (x.std(dim=-1, keepdim=True) + self.eps)
+            norm = (x - x.mean(dim=-1, keepdim=True)) / (
+                x.std(dim=-1, keepdim=True) + self.eps
+            )
         return norm
 
 
@@ -114,8 +117,7 @@ class MultiHeadAttention(nn.Module):
         # calculate attention using function we will define next
         scores = attention(q, k, v, self.d_k, mask, self.dropout)
         # concatenate heads and put through final linear layer
-        concat = (scores.transpose(1, 2).contiguous()
-                  .view(bs, -1, self.d_model))
+        concat = scores.transpose(1, 2).contiguous().view(bs, -1, self.d_model)
         output = self.out(concat)
 
         return output
@@ -160,8 +162,7 @@ class Encoder(nn.Module):
         super().__init__()
         self.N_layers = N_layers
         self.pe = PositionalEncoder(d_model, dropout=dropout)
-        self.layers = get_clones(
-            EncoderLayer(d_model, heads, dropout), N_layers)
+        self.layers = get_clones(EncoderLayer(d_model, heads, dropout), N_layers)
         self.norm = Norm(d_model)
 
     def forward(self, x):
@@ -172,18 +173,18 @@ class Encoder(nn.Module):
 
 
 class RetrieverTransformer(nn.Module):
-    def __init__(self, vocab_size, word_mat, img_dim, hist_dim,
-                 layer_num, attribute_num):
+    def __init__(
+        self, vocab_size, word_mat, img_dim, hist_dim, layer_num, attribute_num
+    ):
         super().__init__()
 
         # text part
         glove_dim = 300
         # glove_dim = len(word_mat[0])
 
-        self.word_emb = nn.Embedding(vocab_size+1, glove_dim)
-        print('[INFO] Load glove embedding ({})'.format(glove_dim))
-        self.word_emb.weight.data.copy_(
-            torch.from_numpy(np.asarray(word_mat)))
+        self.word_emb = nn.Embedding(vocab_size + 1, glove_dim)
+        print("[INFO] Load glove embedding ({})".format(glove_dim))
+        self.word_emb.weight.data.copy_(torch.from_numpy(np.asarray(word_mat)))
         self.word_emb.weight.requires_grad = False
         self.fix_word_emb = True
 
@@ -200,18 +201,18 @@ class RetrieverTransformer(nn.Module):
         self.attr_norm = Norm(hist_dim)
 
         # response encoder
-        self.tran = Encoder(
-            d_model=hist_dim, N_layers=layer_num)
+        self.tran = Encoder(d_model=hist_dim, N_layers=layer_num)
         self.layer_num = layer_num
 
         # output part
         self.out_linear = nn.Linear(hist_dim, hist_dim, bias=True)
 
-        self.vocab_size = vocab_size+1
+        self.vocab_size = vocab_size + 1
         self.hist_vectors = []
 
         self.sp_token = nn.Parameter(
-            torch.zeros(size=(1, hist_dim)), requires_grad=False)
+            torch.zeros(size=(1, hist_dim)), requires_grad=False
+        )
 
         self.hist_dim = hist_dim
         self.init_parameters()
@@ -229,8 +230,7 @@ class RetrieverTransformer(nn.Module):
     def get_sp_emb(self, batch_size):
 
         with torch.no_grad():
-            sp_emb = self.sp_token.expand(
-                size=(batch_size, 1, self.hist_dim))
+            sp_emb = self.sp_token.expand(size=(batch_size, 1, self.hist_dim))
 
         sp_emb = self.text_norm(sp_emb)
         return sp_emb
@@ -275,4 +275,3 @@ class RetrieverTransformer(nn.Module):
         onehot.scatter_(1, text.view(-1, 1), 1)
         onehot = onehot.view(B, L, self.vocab_size)
         return onehot
-

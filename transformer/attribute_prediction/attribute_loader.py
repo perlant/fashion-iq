@@ -17,7 +17,7 @@ class Dataset(data.Dataset):
         """
         self.root = root
 
-        with open(data_file_name, 'r') as f:
+        with open(data_file_name, "r") as f:
             self.data = json.load(f)
         self.ids = range(len(self.data))
 
@@ -25,7 +25,7 @@ class Dataset(data.Dataset):
         for key, _ in self.data.items():
             self.asin.append(key)
 
-        with open(class_file, 'r') as f:
+        with open(class_file, "r") as f:
             self.cls = json.load(f)
 
         self.transform = transform
@@ -35,9 +35,9 @@ class Dataset(data.Dataset):
         """Returns one data pair (image and caption)."""
         id = self.ids[index]
         asin = self.asin[id]
-        img_name = self.asin[id] + '.jpg'
+        img_name = self.asin[id] + ".jpg"
 
-        image = Image.open(os.path.join(self.root, img_name)).convert('RGB')
+        image = Image.open(os.path.join(self.root, img_name)).convert("RGB")
         if self.transform is not None:
             image = self.transform(image)
 
@@ -55,8 +55,7 @@ class Dataset(data.Dataset):
 
 
 def collate_fn(data):
-    """Creates mini-batch tensors from the list of tuples (image, tags).
-    """
+    """Creates mini-batch tensors from the list of tuples (image, tags)."""
     images, labels, asins = zip(*data)
 
     # Merge images (from tuple of 3D tensor to 4D tensor).
@@ -71,14 +70,17 @@ def get_loader(root, data_file, class_file, transform, batch_size, shuffle):
     cpu_num = multiprocessing.cpu_count()
     num_workers = cpu_num - 2 if cpu_num > 2 else 1
 
-    dataset = Dataset(root=root,
-                      data_file_name=data_file,
-                      class_file=class_file,
-                      transform=transform)
+    dataset = Dataset(
+        root=root, data_file_name=data_file, class_file=class_file, transform=transform
+    )
 
     data_loader = torch.utils.data.DataLoader(
-        dataset=dataset, batch_size=batch_size, shuffle=shuffle,
-        num_workers=num_workers, collate_fn=collate_fn, pin_memory=True)
+        dataset=dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        num_workers=num_workers,
+        collate_fn=collate_fn,
+        pin_memory=True,
+    )
 
     return data_loader
-

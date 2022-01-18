@@ -2,6 +2,8 @@ import numpy
 import json
 import argparse
 import csv
+
+
 def preprocess_data(tsv_file_path):
     """load tsv_file and save image1_path and image2_path and caption in json and save it.
 
@@ -12,7 +14,7 @@ def preprocess_data(tsv_file_path):
     None
     """
     with open(tsv_file_path) as tsvfile:
-        reader = csv.reader(tsvfile, delimiter='\t')
+        reader = csv.reader(tsvfile, delimiter="\t")
         # i = 0
         data_train = []
         data_dev = []
@@ -24,12 +26,14 @@ def preprocess_data(tsv_file_path):
             image1 = process_url(row[5])
             text = row[10]
 
-            if row[8] == 'train':
-                data_train.append({'image0': image0, 'image1':image1, "captions":text})
-            elif row[8] == 'val':
-                data_dev.append({'image0': image0, 'image1':image1, "captions":text})
-            elif row[8] == 'test':
-                data_test.append({'image0': image0, 'image1':image1, "captions":text})
+            if row[8] == "train":
+                data_train.append(
+                    {"image0": image0, "image1": image1, "captions": text}
+                )
+            elif row[8] == "val":
+                data_dev.append({"image0": image0, "image1": image1, "captions": text})
+            elif row[8] == "test":
+                data_test.append({"image0": image0, "image1": image1, "captions": text})
 
         data_dev_combine = {}
         data_test_combine = {}
@@ -41,7 +45,11 @@ def preprocess_data(tsv_file_path):
                 temp = data_dev_combine[key]
                 temp["captions"].append(cap)
             else:
-                data_dev_combine[key] = {'image0': data["image0"], 'image1':data["image1"], "captions":[cap]}
+                data_dev_combine[key] = {
+                    "image0": data["image0"],
+                    "image1": data["image1"],
+                    "captions": [cap],
+                }
 
         temp = data_dev_combine.values()
 
@@ -49,7 +57,7 @@ def preprocess_data(tsv_file_path):
 
         for t in temp:
             data_dev_new.append(t)
-            assert len(t['captions']) > 1
+            assert len(t["captions"]) > 1
 
         for data in data_test:
             key = data["image0"] + data["image1"]
@@ -58,7 +66,11 @@ def preprocess_data(tsv_file_path):
                 temp = data_test_combine[key]
                 temp["captions"].append(cap)
             else:
-                data_test_combine[key] = {'image0': data["image0"], 'image1':data["image1"], "captions":[cap]}
+                data_test_combine[key] = {
+                    "image0": data["image0"],
+                    "image1": data["image1"],
+                    "captions": [cap],
+                }
 
         temp = data_test_combine.values()
 
@@ -66,38 +78,32 @@ def preprocess_data(tsv_file_path):
 
         for t in temp:
             data_test_new.append(t)
-            assert len(t['captions']) > 1
+            assert len(t["captions"]) > 1
 
-
-
-    with open('./data_train.json', 'w') as outfile:
+    with open("./data_train.json", "w") as outfile:
         json.dump(data_train, outfile)
 
-    with open('./data_dev.json', 'w') as outfile:
+    with open("./data_dev.json", "w") as outfile:
         json.dump(data_dev, outfile)
 
-    with open('./data_test.json', 'w') as outfile:
+    with open("./data_test.json", "w") as outfile:
         json.dump(data_test, outfile)
 
-    with open('./data_dev_combine.json', 'w') as outfile:
+    with open("./data_dev_combine.json", "w") as outfile:
         json.dump(data_dev_new, outfile)
 
-    with open('./data_test_combine.json', 'w') as outfile:
+    with open("./data_test_combine.json", "w") as outfile:
         json.dump(data_test_new, outfile)
-
-   
-
-
 
 
 def parse_url(url):
     # print('url', url)
-    tokens = url.split('/')
+    tokens = url.split("/")
     # print(tokens)
     folder = tokens[4]
-    tokens = tokens[5].split('?')
+    tokens = tokens[5].split("?")
     tokens.reverse()
-    file = '.'.join(tokens)
+    file = ".".join(tokens)
     # print(tokens[1])
     # print(tokens)
     # if len(tokens) > 1:
@@ -106,13 +112,18 @@ def parse_url(url):
     #     file = 'null'
     # print(tokens[4], tokens[5])
     # print(folder, file)
-    return '/dccstor/extrastore/Neural-Naturalist/data/resized_images/' + folder + '.' + file
+    return (
+        "/dccstor/extrastore/Neural-Naturalist/data/resized_images/"
+        + folder
+        + "."
+        + file
+    )
 
 
 def process_url(url):
     file = parse_url(url)
-    if file[-1] == '.':
-        file = file + 'jpg'
+    if file[-1] == ".":
+        file = file + "jpg"
     # make_folder(folder)
 
     # if not os.path.isfile(file):
@@ -122,18 +133,17 @@ def process_url(url):
     #         f.close()
     return file
 
-def main(args):
-    ''' Main function '''
 
-    
+def main(args):
+    """Main function"""
 
     preprocess_data(args.tsv_file_path)
 
 
-if __name__ == '__main__':
-    
+if __name__ == "__main__":
+
     parser = argparse.ArgumentParser()
-    parser.add_argument('-tsv_file_path', required=True)
+    parser.add_argument("-tsv_file_path", required=True)
     # parser.add_argument('-train_tgt', required=True)
     # parser.add_argument('-valid_src', required=True)
     # parser.add_argument('-valid_tgt', required=True)

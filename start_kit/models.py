@@ -4,7 +4,7 @@ import torchvision.models as models
 from torch.nn.utils.rnn import pack_padded_sequence
 
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class DummyImageEncoder(nn.Module):
@@ -62,13 +62,16 @@ class DummyCaptionEncoder(nn.Module):
         packed = pack_padded_sequence(sorted_input, sorted_length, batch_first=True)
         output, _ = self.rnn(packed)
         padded, output_length = torch.nn.utils.rnn.pad_packed_sequence(output)
-        output = [padded[output_length[i]-1, i, :] for i in range(len(output_length))]
-        output = torch.stack([output[reverse_sort_ids[i]] for i in range(len(output))], dim=0)
+        output = [padded[output_length[i] - 1, i, :] for i in range(len(output_length))]
+        output = torch.stack(
+            [output[reverse_sort_ids[i]] for i in range(len(output))], dim=0
+        )
         output = self.out_linear(output)
         return output
 
     def get_trainable_parameters(self):
         return list(self.parameters())
+
 
 #
 # model = DummyCaptionEncoder(100, 64, 10)
